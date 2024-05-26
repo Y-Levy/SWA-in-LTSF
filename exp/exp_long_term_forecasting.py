@@ -37,26 +37,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         super(Exp_Long_Term_Forecast, self).__init__(args)
 
     def _build_model(self, args):
-        if self.args.model == 'NBEATS-G':
-            model = self.model_dict[self.args.model](input_size=self.args.seq_len,
-                                                output_size=self.args.pred_len,
-                                                stacks=self.args.nb_stacks,
-                                                layers=self.args.nb_layers,
-                                                layer_size=self.args.nb_layer_size).float()
-        elif self.args.model == 'NBEATS-I':
-            model = self.model_dict[self.args.model](input_size=self.args.seq_len,
-                                                output_size=self.args.pred_len,
-                                                trend_blocks=self.args.nb_trend_blocks,
-                                                trend_layers=self.args.nb_trend_layers,
-                                                trend_layer_size=self.args.nb_trend_layer_size,
-                                                seasonality_blocks=self.args.nb_seasonality_blocks,
-                                                seasonality_layers=self.args.nb_seasonality_layers,
-                                                seasonality_layer_size=self.args.nb_seasonality_layer_size,
-                                                num_of_harmonics=self.args.nb_num_of_harmonics,
-                                                degree_of_polynomial=self.args.nb_degree_of_polynomial).float()
-        else:
-            model = self.model_dict[self.args.model].Model(self.args).float()
-
+        model = self.model_dict[self.args.model].Model(self.args).float()
         if self.args.use_multi_gpu and self.args.use_gpu:
             model = nn.DataParallel(model, device_ids=self.args.device_ids)
         return model
@@ -76,11 +57,6 @@ class Exp_Long_Term_Forecast(Exp_Basic):
     def vali(self, vali_data, vali_loader, criterion, swa_flag=False):
         vali_model = self.swa_model if swa_flag else self.model
         vali_model.to(self.device)
-        # weights, grads = get_weights_and_grads(vali_model)
-        # if swa_flag:
-        #     print(f'vali_swa at start:\nP_swa vec: {weights[:10]}\nD_swa vec: {grads[:10]}\n')
-        # else:
-        #     print(f'vali_model at start:\nweights vec: {weights[:10]}\ngradients vec: {grads[:10]}\n')
 
         total_mae = []
         total_mse = []
