@@ -1,12 +1,12 @@
 import torch
 from torch import nn
-from layers.Transformer_EncDec import Encoder, EncoderLayer
-from layers.SelfAttention_Family import FullAttention, AttentionLayer
-from layers.Embed import PatchEmbedding
+from layers.transformer_enc_dec import Encoder, EncoderLayer
+from layers.self_attention_family import FullAttention, AttentionLayer
+from layers.embed import PatchEmbedding
 from typing import Callable, Optional
 from torch import Tensor
-from layers.PatchTST_backbone import PatchTST_backbone
-from layers.PatchTST_layers import series_decomp
+from layers.patchtst_backbone import PatchTST_backbone
+from layers.patchtst_layers import series_decomp
 
 class FlattenHead(nn.Module):
     def __init__(self, n_vars, nf, target_window, head_dropout=0):
