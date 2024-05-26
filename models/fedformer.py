@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from layers.Embed import DataEmbedding
-from layers.AutoCorrelation import AutoCorrelationLayer
-from layers.FourierCorrelation import FourierBlock, FourierCrossAttention
-from layers.MultiWaveletCorrelation import MultiWaveletCross, MultiWaveletTransform
-from layers.Autoformer_EncDec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
+from layers.embed import DataEmbedding
+from layers.autocorrelation import AutoCorrelationLayer
+from layers.fourier_correlation import FourierBlock, FourierCrossAttention
+from layers.multiwavelet_correlation import MultiWaveletCross, MultiWaveletTransform
+from layers.autoformer_enc_dec import Encoder, Decoder, EncoderLayer, DecoderLayer, my_Layernorm, series_decomp, series_decomp_multi
 
 
 class Model(nn.Module):
