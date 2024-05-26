@@ -6,7 +6,7 @@ import os
 import torch
 import random
 import numpy as np
-from models import autoformer, fedformer, Patch
+from models import autoformer, fedformer, patchtst
 from models.nbeats_models import generic, interpretable
 
 
@@ -15,23 +15,9 @@ class Exp_Basic(object):
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
         self.args = args
         self.model_dict = {
-            'TimesNet': TimesNet,
-            'Autoformer': Autoformer,
-            'Transformer': Transformer,
-            'Nonstationary_Transformer': Nonstationary_Transformer,
-            'DLinear': DLinear,
-            'FEDformer': FEDformer,
-            'Informer': Informer,
-            'LightTS': LightTS,
-            'Reformer': Reformer,
-            'ETSformer': ETSformer,
-            'PatchTST': PatchTST,
-            'Pyraformer': Pyraformer,
-            'MICN': MICN,
-            'Crossformer': Crossformer,
-            'FiLM': FiLM,
-            'NBEATS-G': generic,
-            'NBEATS-I': interpretable
+            'Autoformer': autoformer,
+            'FEDformer': fedformer,
+            'PatchTST': patchtst,
         }
         self.device = self._acquire_device()
         self.model = self._build_model(args).to(self.device)
