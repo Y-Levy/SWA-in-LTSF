@@ -3,10 +3,6 @@ import os
 import torch
 from exp.exp_loss_landscape import Exp_LossLandscape
 from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
-from exp.exp_imputation import Exp_Imputation
-from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
-from exp.exp_anomaly_detection import Exp_Anomaly_Detection
-from exp.exp_classification import Exp_Classification
 import random
 import math
 import numpy as np
@@ -218,18 +214,7 @@ def main():
     print('Args in experiment:')
     print(args)
 
-    if args.task_name == 'long_term_forecast':
-        Exp = Exp_Long_Term_Forecast
-    elif args.task_name == 'short_term_forecast':
-        Exp = Exp_Short_Term_Forecast
-    elif args.task_name == 'imputation':
-        Exp = Exp_Imputation
-    elif args.task_name == 'anomaly_detection':
-        Exp = Exp_Anomaly_Detection
-    elif args.task_name == 'classification':
-        Exp = Exp_Classification
-    else:
-        Exp = Exp_Long_Term_Forecast
+    Exp = Exp_Long_Term_Forecast
 
     if args.is_training:
         for ii in range(args.itr):
@@ -257,8 +242,6 @@ def main():
             if args.use_neptune:
                 args.neptune_run.stop()
     else:
-        Exp = Exp_LossLandscape
-
         ii = 0
         id = get_id(args.seed, ii, args.model, args.data_path, args.pred_len, args.features, args.swa_start, args.anneal_epochs, args.swa_lr)
         neptune_run = neptune.init_run(project=args.neptune_project, with_id=id, api_token=args.neptune_token)
