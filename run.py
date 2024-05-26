@@ -146,21 +146,6 @@ def main():
     parser.add_argument('--kernel_size', type=int, default=25, help='decomposition-kernel')
     parser.add_argument('--individual', type=int, default=0, help='individual head; True 1 False 0')
 
-    # supplementary config for N-BEATS-G
-    parser.add_argument('--nb_layers', type=int, default=4, help='num of layers for nbeats only')
-    parser.add_argument('--nb_layer_size', type=int, default=512, help='size of layers for nbeats only')
-    parser.add_argument('--nb_stacks', type=int, default=30, help='num of stacks for nbeats only')
-
-    # supplementary config for N-BEATS-I
-    parser.add_argument('--nb_seasonality_layer_size', type=int, default=2048, help='num of layers for nbeats only')
-    parser.add_argument('--nb_seasonality_blocks', type=int, default=3, help='size of layers for nbeats only')
-    parser.add_argument('--nb_seasonality_layers', type=int, default=4, help='size of layers for nbeats only')
-    parser.add_argument('--nb_trend_layer_size', type=int, default=256, help='size of layers for nbeats only')
-    parser.add_argument('--nb_degree_of_polynomial', type=int, default=3, help='size of layers for nbeats only')
-    parser.add_argument('--nb_trend_blocks', type=int, default=3, help='size of layers for nbeats only')
-    parser.add_argument('--nb_trend_layers', type=int, default=4, help='size of layers for nbeats only')
-    parser.add_argument('--nb_num_of_harmonics', type=int, default=1, help='size of layers for nbeats only')
-
     # optimization
     parser.add_argument('--num_workers', type=int, default=0, help='data loader num workers')
     parser.add_argument('--itr', type=int, default=1, help='experiments times')
