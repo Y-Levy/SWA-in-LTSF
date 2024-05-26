@@ -6,8 +6,7 @@ import os
 import torch
 import random
 import numpy as np
-from models import Autoformer, Transformer, TimesNet, Nonstationary_Transformer, DLinear, FEDformer, \
-    Informer, LightTS, Reformer, ETSformer, Pyraformer, PatchTST, MICN, Crossformer, FiLM, nbeats_models, nbeats
+from models import autoformer, fedformer, Patch
 from models.nbeats_models import generic, interpretable
 
 
