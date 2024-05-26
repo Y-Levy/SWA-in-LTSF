@@ -54,7 +54,6 @@ class PatchTST_backbone(nn.Module):
 
         if self.pretrain_head: 
             self.head = self.create_pretrain_head(self.head_nf, c_in, fc_dropout) # custom head passed as a partial func with all its kwargs
-            assert self.head.device == 'cuda:0', 'PatchTST_backbone.py -> PatchTST_backbone -> __init__ -> if -> self.head'
         elif head_type == 'flatten': 
             self.head = Flatten_Head(self.individual, self.n_vars, self.head_nf, target_window, head_dropout=head_dropout)
         
@@ -81,11 +80,9 @@ class PatchTST_backbone(nn.Module):
             z = z.permute(0,2,1)
             z = self.revin_layer(z, 'denorm')
             z = z.permute(0,2,1)
-        assert z.device.type == 'cuda', 'PatchTST_backbone.py -> PatchTST_backbone -> forward -> z'
         return z
     
     def create_pretrain_head(self, head_nf, vars, dropout):
-        assert nn.Sequential(nn.Dropout(dropout), nn.Conv1d(head_nf, vars, 1)).device == 'cuda:0', 'PatchTST_backbone.py -> PatchTST_backbone -> create_pretrain_head'
         return nn.Sequential(nn.Dropout(dropout),
                     nn.Conv1d(head_nf, vars, 1)
                     )
@@ -124,7 +121,6 @@ class Flatten_Head(nn.Module):
             x = self.flatten(x)
             x = self.linear(x)
             x = self.dropout(x)
-        assert x.device.type == 'cuda', 'PatchTST_backbone.py -> Flatten_Head -> forward -> x'
         return x
         
 
@@ -149,8 +145,6 @@ class TSTiEncoder(nn.Module):  #i means channel-independent
 
         # Positional encoding
         self.W_pos = positional_encoding(pe, learn_pe, q_len, d_model).to(torch.device('cuda:{}'.format(0)))
-        assert self.W_pos.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> __init__ -> self.W_pos'
-        assert self.W_pos.device.index == 0, 'PatchTST_backbone.py -> TSTiEncoder -> __init__ -> self.W_pos2'
 
         # Residual dropout
         self.dropout = nn.Dropout(dropout)
@@ -165,21 +159,16 @@ class TSTiEncoder(nn.Module):  #i means channel-independent
         x = x.double()
         n_vars = x.shape[1]
         # Input encoding
-        x = x.permute(0,1,3,2).to(torch.device('cuda:{}'.format(0)))                                                # x: [bs x nvars x patch_num x patch_len]
-        assert x.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> x.permute(0,1,3,2)'
+        x = x.permute(0,1,3,2)                                             # x: [bs x nvars x patch_num x patch_len]
         self.W_P.to(torch.float64)
         x = self.W_P(x).to(torch.device('cuda:{}'.format(0)))                                                   # x: [bs x nvars x patch_num x d_model]
-        assert x.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> self.W_P(x)'
 
-        u = torch.reshape(x, (x.shape[0]*x.shape[1],x.shape[2],x.shape[3])).to(torch.device('cuda:{}'.format(0)))      # u: [bs * nvars x patch_num x d_model]
-        assert u.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> u: torch.reshape()'
+        u = torch.reshape(x, (x.shape[0]*x.shape[1],x.shape[2],x.shape[3]))      # u: [bs * nvars x patch_num x d_model]
         u = self.dropout(u + self.W_pos)                                         # u: [bs * nvars x patch_num x d_model]
 
         # Encoder
         z = self.encoder(u)                                                      # z: [bs * nvars x patch_num x d_model]
-        assert z.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> z: self.encoder()'
         z = torch.reshape(z, (-1,n_vars,z.shape[-2],z.shape[-1]))                # z: [bs x nvars x patch_num x d_model]
-        assert z.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> z: torch.reshape()'
         z = z.permute(0,1,3,2)                                                   # z: [bs x nvars x d_model x patch_num]
         assert z.device.type == 'cuda', 'PatchTST_backbone.py -> TSTiEncoder -> forward -> z'
         return z    
@@ -203,12 +192,9 @@ class TSTEncoder(nn.Module):
         scores = None
         if self.res_attention:
             for mod in self.layers: output, scores = mod(output, prev=scores, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert output.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoder -> forward -> if -> output'
-            assert scores.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoder -> forward -> if -> scores'
             return output
         else:
             for mod in self.layers: output = mod(output, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert output.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoder -> forward -> else -> output'
             return output
 
 
@@ -230,7 +216,6 @@ class TSTEncoderLayer(nn.Module):
             self.norm_attn = nn.Sequential(Transpose(1,2), nn.BatchNorm1d(d_model), Transpose(1,2))
         else:
             self.norm_attn = nn.LayerNorm(d_model)
-            assert self.norm_attn.device == 'cuda:0', 'PatchTST_layers.py -> TSTEncoderLayer -> __init__ -> Add & Norm -> else -> self.norm_attn'
 
         # Position-wise Feed-Forward
         self.ff = nn.Sequential(nn.Linear(d_model, d_ff, bias=bias),
@@ -244,7 +229,6 @@ class TSTEncoderLayer(nn.Module):
             self.norm_ffn = nn.Sequential(Transpose(1,2), nn.BatchNorm1d(d_model), Transpose(1,2))
         else:
             self.norm_ffn = nn.LayerNorm(d_model)
-            assert self.norm_ffn.device == 'cuda:0', 'PatchTST_layers.py -> TSTEncoderLayer -> __init__ -> Add & Norm -> else -> self.norm_ffn'
 
         self.pre_norm = pre_norm
         self.store_attn = store_attn
@@ -255,49 +239,32 @@ class TSTEncoderLayer(nn.Module):
         # Multi-Head attention sublayer
         if self.pre_norm:
             src = self.norm_attn(src)
-            assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention sublayer ->  src'
         ## Multi-Head attention
         if self.res_attention:
             src2, attn, scores = self.self_attn(src, src, src, prev, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert src2.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention -> if -> src2'
-            assert attn.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention -> if -> attn'
-            assert scores.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention -> if -> scores'
         else:
             src2, attn = self.self_attn(src, src, src, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert src2.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention -> else -> src2'
-            assert attn.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Multi-Head attention -> else -> attn'
 
         if self.store_attn:
             self.attn = attn
-            assert self.attn.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> if self.store_attn -> self.attn'
         ## Add & Norm
         src = src + self.dropout_attn(src2) # Add: residual connection with residual dropout
-        assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Add & Norm -> src'
         if not self.pre_norm:
-            src = src.to(torch.float32)
             src = self.norm_attn(src)
-            assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Add & Norm -> if not -> src'
 
         # Feed-forward sublayer
         if self.pre_norm:
             src = self.norm_ffn(src)
-            assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Feed-forward sublayer -> if -> src'
         ## Position-wise Feed-Forward
         src2 = self.ff(src)
-        assert src2.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Position-wise Feed-Forward -> src2'
         ## Add & Norm
         src = src + self.dropout_ffn(src2) # Add: residual connection with residual dropout
-        assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Add & Norm -> src'
         if not self.pre_norm:
             src = self.norm_ffn(src)
-            assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> Feed-forward sublayer -> Add & Norm -> if not -> src'
 
         if self.res_attention:
-            assert src.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> if self.res_attention -> src'
-            assert scores.device.type == 'cuda', 'PatchTST_backbone.py -> TSTEncoderLayer -> forward -> if self.res_attention -> scores'
             return src, scores
         else:
-            assert src.device == 'cuda:0', 'PatchTST_layers.py -> TSTEncoderLayer -> forward -> else self.res_attention -> src'
             return src
 
 
@@ -340,48 +307,30 @@ class _MultiheadAttention(nn.Module):
         V = V.to(torch.float32)
 
         # Linear (+ split in multiple heads)
-        q_s = self.W_Q(Q).view(bs, -1, self.n_heads, self.d_k).transpose(1,2).to(torch.device('cuda:{}'.format(0)))       # q_s    : [bs x n_heads x max_q_len x d_k]
-        assert q_s.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> q_s'
-        k_s = self.W_K(K).view(bs, -1, self.n_heads, self.d_k).permute(0,2,3,1).to(torch.device('cuda:{}'.format(0)))     # k_s    : [bs x n_heads x d_k x q_len] - transpose(1,2) + transpose(2,3)
-        assert k_s.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> k_s'
-        v_s = self.W_V(V).view(bs, -1, self.n_heads, self.d_v).transpose(1,2).to(torch.device('cuda:{}'.format(0)))       # v_s    : [bs x n_heads x q_len x d_v]
-        assert v_s.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> v_s'
+        q_s = self.W_Q(Q).view(bs, -1, self.n_heads, self.d_k).transpose(1,2)       # q_s    : [bs x n_heads x max_q_len x d_k]
+        k_s = self.W_K(K).view(bs, -1, self.n_heads, self.d_k).permute(0,2,3,1)     # k_s    : [bs x n_heads x d_k x q_len] - transpose(1,2) + transpose(2,3)
+        v_s = self.W_V(V).view(bs, -1, self.n_heads, self.d_v).transpose(1,2)       # v_s    : [bs x n_heads x q_len x d_v]
 
         # Apply Scaled Dot-Product Attention (multiple heads)
         if self.res_attention:
             output, attn_weights, attn_scores = self.sdp_attn(q_s, k_s, v_s, prev=prev, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> Apply Scaled Dot-Product.. -> if -> output'
-            assert attn_weights.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> Apply Scaled Dot-Product.. -> if -> attn_weights'
         else:
             output, attn_weights = self.sdp_attn(q_s, k_s, v_s, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
-            assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> Apply Scaled Dot-Product.. -> else -> output'
-            assert attn_weights.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> Apply Scaled Dot-Product.. -> else -> attn_weights'
 
         # output: [bs x n_heads x q_len x d_v], attn: [bs x n_heads x q_len x q_len], scores: [bs x n_heads x max_q_len x q_len]
 
         # back to the original inputs dimensions
-        output = output.transpose(1, 2).contiguous().view(bs, -1, self.n_heads * self.d_v).to(torch.device('cuda:{}'.format(0))) # output: [bs x q_len x n_heads * d_v]
-        assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> output: back to the original inputs dimensions -> output'
-        output = self.to_out(output).to(torch.device('cuda:{}'.format(0)))
-        assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> output: back to the original inputs dimensions -> self.to_out(output)'
+        output = output.transpose(1, 2).contiguous().view(bs, -1, self.n_heads * self.d_v) # output: [bs x q_len x n_heads * d_v]
+        output = self.to_out(output)
 
         if self.res_attention:
             attn_weights.to(torch.device('cuda:{}'.format(0)))
-            assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> if self.res_attention -> output'
-            assert attn_weights.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> if self.res_attention -> attn_weights'
-            assert attn_scores.device.type == 'cuda', 'PatchTST_backbone.py -> _MultiheadAttention -> forward -> if self.res_attention -> attn_scores'
             return output, attn_weights, attn_scores
         else:
-            assert output.device == 'cuda:0', 'PatchTST_layers.py -> _MultiheadAttention -> forward -> else self.res_attention -> output'
-            assert attn_weights.device == 'cuda:0', 'PatchTST_layers.py -> _MultiheadAttention -> forward -> else self.res_attention -> attn_weights'
             return output, attn_weights
 
 
 class _ScaledDotProductAttention(nn.Module):
-    r"""Scaled Dot-Product Attention module (Attention is all you need by Vaswani et al., 2017) with optional residual attention from previous layer
-    (Realformer: Transformer likes residual attention by He et al, 2020) and locality self sttention (Vision Transformer for Small-Size Datasets
-    by Lee et al, 2021)"""
-
     def __init__(self, d_model, n_heads, attn_dropout=0., res_attention=False, lsa=False):
         super().__init__()
         self.attn_dropout = nn.Dropout(attn_dropout)
@@ -409,8 +358,6 @@ class _ScaledDotProductAttention(nn.Module):
 
         # Scaled MatMul (q, k) - similarity scores for all pairs of positions in an input sequence
         attn_scores = torch.matmul(q, k) * self.scale      # attn_scores : [bs x n_heads x max_q_len x q_len]
-        attn_scores.to(torch.device('cuda:{}'.format(0)))
-        assert attn_scores.device.type == 'cuda', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> attn_scores'
 
         # Add pre-softmax attention scores from the previous layer (optional)
         if prev is not None: attn_scores = attn_scores + prev
@@ -421,30 +368,19 @@ class _ScaledDotProductAttention(nn.Module):
                 attn_scores.masked_fill_(attn_mask, -np.inf)
             else:
                 attn_scores += attn_mask
-            assert attn_scores.device == 'cuda:0', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> if attn_mask -> attn_scores'
 
         # Key padding mask (optional)
         if key_padding_mask is not None:                              # mask with shape [bs x q_len] (only when max_w_len == q_len)
             attn_scores.masked_fill_(key_padding_mask.unsqueeze(1).unsqueeze(2), -np.inf)
-            assert attn_scores.masked_fill_ == 'cuda:0', 'PatchTST_backbone.py -> _ScaledDotProductAttention -> forward -> if key_padding_mask -> attn_scores.masked_fill_'
 
         # normalize the attention weights
-        attn_weights = F.softmax(attn_scores, dim=-1).to(torch.device('cuda:{}'.format(0)))                 # attn_weights   : [bs x n_heads x max_q_len x q_len]
-        assert attn_weights.device.type == 'cuda', 'PatchTST_backbone.py -> _ScaledDotProductAttention -> forward -> attn_weights'
-        attn_weights = self.attn_dropout(attn_weights).to(torch.device('cuda:{}'.format(0)))
-        assert attn_weights.device.type == 'cuda', 'PatchTST_backbone.py -> _ScaledDotProductAttention -> forward -> self.attn_dropout(attn_weights)'
+        attn_weights = F.softmax(attn_scores, dim=-1)                # attn_weights   : [bs x n_heads x max_q_len x q_len]
+        attn_weights = self.attn_dropout(attn_weights)
 
         # compute the new values given the attention weights
-        output = torch.matmul(attn_weights, v).to(torch.device('cuda:{}'.format(0)))                        # output: [bs x n_heads x max_q_len x d_v]
-        assert output.device.type == 'cuda', 'PatchTST_backbone.py -> _ScaledDotProductAttention -> forward -> output'
+        output = torch.matmul(attn_weights, v)                        # output: [bs x n_heads x max_q_len x d_v]
 
         if self.res_attention:
-            assert output.device.type == 'cuda', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> if self.res_attention -> output'
-            assert attn_weights.device.type == 'cuda', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> if self.res_attention -> attn_weights'
-            assert attn_scores.device.type == 'cuda', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> if self.res_attention -> attn_scores'
             return output, attn_weights, attn_scores
         else:
-            assert output.device == 'cuda:0', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> else self.res_attention -> output'
-            assert attn_weights.device == 'cuda:0', 'PatchTST_layers.py -> _ScaledDotProductAttention -> forward -> else self.res_attention -> attn_weights'
             return output, attn_weights
-
